@@ -4,8 +4,25 @@ const cookieSession = require("cookie-session");
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const dbConfig = require("./app/config/db.config");
 mongoose.set('strictQuery', false);
+
+const logger = require('./app/config/logger');
+
+const URI = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@mongodb-lake.vl6u2.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
+
+mongoose
+  .connect(URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    logger.info("Successfully connected to MongoDB.");
+    initial();
+  })
+  .catch(err => {
+    logger.error("Connection error", err);
+    process.exit();
+  });
 
 const app = express();
 
@@ -34,7 +51,6 @@ app.use(
 
 const db = require("./app/models");
 const Role = db.role;
-const URI = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@mongodb-lake.vl6u2.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
 
 db.mongoose
   .connect(URI, {
@@ -51,8 +67,15 @@ db.mongoose
   });
 
 // simple route
+
 app.get("/", (req, res) => {
+  logger.info("Home route accessed.");
   res.json({ message: "Welcome to dataops application." });
+});
+
+app.use((err, req, res, next) => {
+  logger.error(`Error occurred: ${err.message}`);
+  res.status(500).send('Internal Server Error');
 });
 
 // routes
